@@ -1,0 +1,39 @@
+#include<stdio.h>
+#include<semaphore.h>
+#include<pthread.h>
+
+sem_t producer;
+sem_t consumer;
+
+int a=0;
+
+void* producerFunc(void* arg){
+    for(int i = 0 ; i < 100 ; i++){
+        sem_wait(&producer);
+        a=i;
+        sem_post(&consumer);
+    }
+}
+
+
+void* consumerFunc(void* arg){
+    for(int i = 0 ; i < 100 ; i++){
+        sem_wait(&consumer);
+        printf("%d " , a);
+        sem_post(&producer);
+    }
+}
+
+void main(){
+    pthread_t thread1;
+    pthread_t thread2;
+    sem_init(&producer, 0, 1);  
+    sem_init(&consumer, 0, 0);  
+    pthread_create(&thread1 ,NULL , producerFunc , NULL );
+    pthread_create(&thread2 ,NULL , consumerFunc , NULL );
+
+    pthread_join(thread1 , NULL);
+    pthread_join(thread2 , NULL);
+    sem_destroy(&consumer);
+    sem_destroy(&producer);
+}
