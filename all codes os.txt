@@ -1,0 +1,1087 @@
+
+---------------------------------------------------------------------------------------------------------------------------------------
+// ✅ C++ Program for FCFS, SJF Non-Preemptive, SJF Pre-Emptive
+---------------------------------------------------------------------------------------------------------------------------------------
+#include <iostream>
+using namespace std;
+ 
+class Process {
+public:
+    int pid, at, bt;
+    int ct, wt, tat, rt;
+    int done;
+ 
+    Process() {
+        ct = wt = tat = 0;
+        done = 0;
+    }
+};
+ 
+class Scheduler {
+public:
+    Process p[50];
+    int n;
+    int seq[1000], seqIndex;
+ 
+    Scheduler() {
+        seqIndex = 0;
+    }
+ 
+    void input() {
+        cout << "Enter number of processes: ";
+        cin >> n;
+ 
+        cout << "Enter Arrival Time and Burst Time:\n";
+        for (int i = 0; i < n; i++) {
+            p[i].pid = i + 1;
+            cout << "P" << i + 1 << " AT BT: ";
+            cin >> p[i].at >> p[i].bt;
+            p[i].rt = p[i].bt;
+        }
+    }
+ 
+ 
+    void FCFS() {
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                if (p[j].at < p[i].at) {
+                    Process temp = p[i];
+                    p[i] = p[j];
+                    p[j] = temp;
+                }
+            }
+        }
+ 
+        int time = 0;
+        for (int i = 0; i < n; i++) {
+            if (time < p[i].at) time = p[i].at;
+ 
+            for (int k = 0; k < p[i].bt; k++)
+                seq[seqIndex++] = p[i].pid;
+ 
+            p[i].ct = time + p[i].bt;
+            p[i].tat = p[i].ct - p[i].at;
+            p[i].wt = p[i].tat - p[i].bt;
+            time = p[i].ct;
+        }
+        printResult();
+    }
+ 
+    void SJF_NP() {
+        int time = 0, completed = 0;
+ 
+        while (completed < n) {
+            int idx = -1, mn = 1e9;
+ 
+            for (int i = 0; i < n; i++) {
+                if (!p[i].done && p[i].at <= time && p[i].bt < mn) {
+                    mn = p[i].bt;
+                    idx = i;
+                }
+            }
+ 
+            if (idx == -1) {
+                time++;
+                continue;
+            }
+ 
+            p[idx].done = 1;
+ 
+            for (int k = 0; k < p[idx].bt; k++)
+                seq[seqIndex++] = p[idx].pid;
+ 
+            time += p[idx].bt;
+            p[idx].ct = time;
+            p[idx].tat = p[idx].ct - p[idx].at;
+            p[idx].wt = p[idx].tat - p[idx].bt;
+ 
+            completed++;
+        }
+        printResult();
+    }
+ 
+    void SJF_P() {
+        int time = 0, completed = 0;
+ 
+        while (completed < n) {
+            int idx = -1, mn = 1e9;
+ 
+            for (int i = 0; i < n; i++) {
+                if (p[i].at <= time && p[i].rt > 0 && p[i].rt < mn) {
+                    mn = p[i].rt;
+                    idx = i;
+                }
+            }
+ 
+            if (idx == -1) {
+                time++;
+                continue;
+            }
+ 
+            seq[seqIndex++] = p[idx].pid;
+            p[idx].rt--;
+            time++;
+ 
+            if (p[idx].rt == 0) {
+                completed++;
+                p[idx].ct = time;
+                p[idx].tat = p[idx].ct - p[idx].at;
+                p[idx].wt = p[idx].tat - p[idx].bt;
+            }
+        }
+ 
+        printResult();
+    }
+ 
+    void printResult() {
+        float avg = 0;
+ 
+        cout << "\n--- Results ---\n";
+        for (int i = 0; i < n; i++) {
+            cout << "P" << p[i].pid << " Waiting Time = " << p[i].wt << endl;
+            avg += p[i].wt;
+        }
+        cout << "Average Waiting Time = " << avg / n << endl;
+ 
+        cout << "Execution Sequence: ";
+        for (int i = 0; i < seqIndex; i++)
+            cout << "P" << seq[i] << " ";
+        cout << endl;
+    }
+};
+ 
+int main() {
+    Scheduler s;
+    s.input();
+ 
+    int choice;
+    cout << "\nChoose Algorithm:\n";
+    cout << "1. FCFS\n2. SJF Non-Preemptive\n3. SJF Preemptive (SRTF)\n";
+    cin >> choice;
+ 
+    switch (choice) {
+    case 1: s.FCFS(); break;
+    case 2: s.SJF_NP(); break;
+    case 3: s.SJF_P(); break;
+    default: cout << "Invalid choice\n";
+    }
+ 
+    return 0;
+}
+ 
+---------------------------------------------------------------------------------------------------------------------------------------
+// (CPU Scheduling Simulator) ; FCFS, SJF, PS, RR
+---------------------------------------------------------------------------------------------------------------------------------------
+#include <iostream>
+using namespace std;
+ 
+class Process {
+public:
+    int pid, at, bt, pr;
+    int wt, tat, ct, rt;
+    Process() {
+        wt = tat = ct = pr = 0;
+    }
+};
+ 
+class Scheduler {
+public:
+    Process p[20];
+    int n;
+    int gantt[500];
+    int gc;
+ 
+    Scheduler() {
+        gc = 0;
+    }
+ 
+    void input() {
+        cout << "Enter number of processes: ";
+        cin >> n;
+ 
+        cout << "Enter Arrival Time & Burst Time:\n";
+        for (int i = 0; i < n; i++) {
+            p[i].pid = i + 1;
+            cout << "P" << i + 1 << " AT BT: ";
+            cin >> p[i].at >> p[i].bt;
+            p[i].rt = p[i].bt;
+        }
+    }
+ 
+    void FCFS() {
+        for (int i = 0; i < n; i++)
+            for (int j = i + 1; j < n; j++)
+                if (p[j].at < p[i].at)
+                    swap(p[i], p[j]);
+ 
+        int time = 0;
+ 
+        for (int i = 0; i < n; i++) {
+            if (time < p[i].at)
+                time = p[i].at;
+ 
+            for (int k = 0; k < p[i].bt; k++)
+                gantt[gc++] = p[i].pid;
+ 
+            time += p[i].bt;
+            p[i].ct = time;
+            p[i].tat = p[i].ct - p[i].at;
+            p[i].wt = p[i].tat - p[i].bt;
+        }
+    }
+ 
+    void SJF() {
+        int done[20] = {0};
+        int time = 0, completed = 0;
+ 
+        while (completed < n) {
+            int idx = -1, mn = 99999;
+ 
+            for (int i = 0; i < n; i++) {
+                if (!done[i] && p[i].at <= time && p[i].bt < mn) {
+                    mn = p[i].bt;
+                    idx = i;
+                }
+            }
+ 
+            if (idx == -1) { time++; continue; }
+ 
+            done[idx] = 1;
+ 
+            for (int k = 0; k < p[idx].bt; k++)
+                gantt[gc++] = p[idx].pid;
+ 
+            time += p[idx].bt;
+            p[idx].ct = time;
+            p[idx].tat = p[idx].ct - p[idx].at;
+            p[idx].wt = p[idx].tat - p[idx].bt;
+ 
+            completed++;
+        }
+    }
+ 
+    void Priority() {
+        cout << "\nEnter Priority for each process (lower = higher priority):\n";
+        for (int i = 0; i < n; i++) {
+            cout << "Priority of P" << p[i].pid << ": ";
+            cin >> p[i].pr;
+        }
+ 
+        int done[20] = {0};
+        int time = 0, completed = 0;
+ 
+        while (completed < n) {
+            int idx = -1, best = 99999;
+ 
+            for (int i = 0; i < n; i++) {
+                if (!done[i] && p[i].at <= time && p[i].pr < best) {
+                    best = p[i].pr;
+                    idx = i;
+                }
+            }
+ 
+            if (idx == -1) { time++; continue; }
+ 
+            done[idx] = 1;
+ 
+            for (int k = 0; k < p[idx].bt; k++)
+                gantt[gc++] = p[idx].pid;
+ 
+            time += p[idx].bt;
+            p[idx].ct = time;
+            p[idx].tat = p[idx].ct - p[idx].at;
+            p[idx].wt = p[idx].tat - p[idx].bt;
+ 
+            completed++;
+        }
+    }
+ 
+    void RoundRobin() {
+        int tq;
+        cout << "Enter Time Quantum: ";
+        cin >> tq;
+ 
+        int remaining = n;
+        int time = 0;
+ 
+        while (remaining > 0) {
+            bool idle = true;
+ 
+            for (int i = 0; i < n; i++) {
+ 
+                if (p[i].rt > 0 && p[i].at <= time) {
+                    idle = false;
+ 
+                    int run = (p[i].rt > tq) ? tq : p[i].rt;
+ 
+                    for (int k = 0; k < run; k++)
+                        gantt[gc++] = p[i].pid;
+ 
+                    time += run;
+                    p[i].rt -= run;
+ 
+                    if (p[i].rt == 0) {
+                        p[i].ct = time;
+                        p[i].tat = p[i].ct - p[i].at;
+                        p[i].wt = p[i].tat - p[i].bt;
+                        remaining--;
+                    }
+                }
+            }
+ 
+            if (idle) time++;
+        }
+    }
+ 
+    void print() {
+        float avgWT = 0, avgTAT = 0;
+ 
+        cout << "\n--- GANTT CHART ---\n";
+        for (int i = 0; i < gc; i++)
+            cout << "| P" << gantt[i] << " ";
+        cout << "|\n";
+ 
+        cout << "\nPID\tAT\tBT\tWT\tTAT\n";
+        for (int i = 0; i < n; i++) {
+            cout << "P" << p[i].pid << "\t" 
+                 << p[i].at << "\t" 
+                 << p[i].bt << "\t" 
+                 << p[i].wt << "\t" 
+                 << p[i].tat << "\n";
+ 
+            avgWT += p[i].wt;
+            avgTAT += p[i].tat;
+        }
+ 
+        cout << "\nAverage Waiting Time = " << avgWT / n;
+        cout << "\nAverage Turnaround Time = " << avgTAT / n << "\n";
+    }
+};
+ 
+int main() {
+    Scheduler s;
+    s.input();
+ 
+    int choice;
+    cout << "\nSelect Scheduling Algorithm:\n";
+    cout << "1. FCFS\n2. Shortest Job First\n3. Priority Scheduling\n4. Round Robin\n";
+    cin >> choice;
+ 
+    switch(choice) {
+        case 1: s.FCFS(); break;
+        case 2: s.SJF(); break;
+        case 3: s.Priority(); break;
+        case 4: s.RoundRobin(); break;
+        default: cout << "Invalid choice!\n"; return 0;
+    }
+ 
+    s.print();
+    return 0;
+}
+ 
+ 
+---------------------------------------------------------------------------------------------------------------------------------------
+// Banker's Algorithm (Using Classes Only, No Vectors)
+---------------------------------------------------------------------------------------------------------------------------------------
+#include <iostream>
+using namespace std;
+ 
+#define P 3 
+#define R 4 
+ 
+ 
+void calculateNeed(int need[P][R], int maxm[P][R], int allot[P][R]) {
+    for (int i = 0 ; i < P ; i++)
+        for (int j = 0 ; j < R ; j++)
+            need[i][j] = maxm[i][j] - allot[i][j];
+}
+ 
+ 
+bool isSafe(int processes[], int avail[], int maxm[][R], int allot[][R]) {
+    int need[P][R];
+    calculateNeed(need, maxm, allot);
+ 
+    bool finish[P] = {0};
+    int safeSeq[P];
+    int work[R];
+    for(int i=0;i<R;i++) work[i] = avail[i];
+ 
+    int count = 0;
+    while(count < P) {
+        bool found = false;
+        for(int p = 0; p < P; p++) {
+            if(!finish[p]) {
+                bool canAllocate = true;
+                for(int r = 0; r < R; r++)
+                    if(need[p][r] > work[r]) { canAllocate = false; break; }
+ 
+                if(canAllocate) {
+                    for(int r = 0; r < R; r++) work[r] += allot[p][r];
+                    safeSeq[count++] = p;
+                    finish[p] = true;
+                    found = true;
+                }
+            }
+        }
+        if(!found) break;
+    }
+ 
+ 
+    for(int i = 0; i < P; i++)
+        if(finish[i] == false) return false;
+ 
+ 
+    cout << "System is in a safe state.\nSafe sequence: ";
+    for(int i = 0; i < P; i++) cout << "P" << safeSeq[i]+1 << " ";
+    cout << endl;
+    return true;
+}
+ 
+int main() {
+    int processes[P] = {0, 1, 2};
+ 
+ 
+    int avail1[R] = {3, 3, 2, 2};
+    int max1[P][R] = { {7, 5, 3, 4},
+                       {3, 2, 2, 2},
+                       {9, 0, 2, 2} };
+    int allot1[P][R] = { {0, 1, 0, 1},
+                         {2, 0, 0, 0},
+                         {3, 0, 2, 1} };
+ 
+    cout << "=== Case 1 ===" << endl;
+    if(!isSafe(processes, avail1, max1, allot1))
+        cout << "System is NOT in a safe state!\n";
+ 
+    // Case 2: Unsafe state
+    int avail2[R] = {1, 0, 0, 1};
+    int max2[P][R] = { {7, 5, 3, 4},
+                       {3, 2, 2, 2},
+                       {9, 0, 2, 2} };
+    int allot2[P][R] = { {0, 1, 0, 1},
+                         {2, 0, 0, 0},
+                         {3, 0, 2, 1} };
+ 
+    cout << "\n=== Case 2 ===" << endl;
+    if(!isSafe(processes, avail2, max2, allot2))
+        cout << "System is NOT in a safe state!\n";
+ 
+    return 0;
+}
+ 
+---------------------------------------------------------------------------------------------------------------------------------------
+// Program 1: Sum, Max, Min Using Multithreading
+---------------------------------------------------------------------------------------------------------------------------------------
+#include <stdio.h>
+#include <pthread.h>
+ 
+int data[10] = {12, 5, 7, 9, 20, 3, 15, 8, 6, 10};
+int sum = 0, max, min;
+ 
+void* calcSum(void* arg) {
+    for(int i = 0; i < 10; i++)
+        sum += data[i];
+    pthread_exit(NULL);
+}
+ 
+void* calcMax(void* arg) {
+    max = data[0];
+    for(int i = 1; i < 10; i++)
+        if(data[i] > max)
+            max = data[i];
+    pthread_exit(NULL);
+}
+ 
+void* calcMin(void* arg) {
+    min = data[0];
+    for(int i = 1; i < 10; i++)
+        if(data[i] < min)
+            min = data[i];
+    pthread_exit(NULL);
+}
+ 
+int main() {
+    pthread_t t1, t2, t3;
+ 
+    pthread_create(&t1, NULL, calcSum, NULL);
+    pthread_create(&t2, NULL, calcMax, NULL);
+    pthread_create(&t3, NULL, calcMin, NULL);
+ 
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+    pthread_join(t3, NULL);
+ 
+    printf("Sum = %d\n", sum);
+    printf("Max = %d\n", max);
+    printf("Min = %d\n", min);
+ 
+    return 0;
+}
+---------------------------------------------------------------------------------------------------------------------------------------
+// Program 2: Semaphore for Critical Section
+---------------------------------------------------------------------------------------------------------------------------------------
+#include <stdio.h>
+#include <pthread.h>
+#include <semaphore.h>
+ 
+int shared = 0;
+sem_t mutex;
+ 
+void* threadFunc(void* arg) {
+    sem_wait(&mutex);
+ 
+    int id = *(int*)arg;
+    printf("Thread %d entering critical section...\n", id);
+ 
+    int temp = shared;
+    temp += 10;          
+    shared = temp;
+ 
+    printf("Thread %d updated shared to %d\n", id, shared);
+ 
+    sem_post(&mutex); 
+    return NULL;
+}
+ 
+int main() {
+    pthread_t t1, t2;
+    int id1 = 1, id2 = 2;
+ 
+    sem_init(&mutex, 0, 1); 
+ 
+    pthread_create(&t1, NULL, threadFunc, &id1);
+    pthread_create(&t2, NULL, threadFunc, &id2);
+ 
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+ 
+    printf("Final value of shared = %d\n", shared);
+ 
+    sem_destroy(&mutex);
+    return 0;
+}
+---------------------------------------------------------------------------------------------------------------------------------------
+// Program 3: Producer–Consumer Using Semaphores
+---------------------------------------------------------------------------------------------------------------------------------------
+#include <stdio.h>
+#include <pthread.h>
+#include <semaphore.h>
+ 
+#define SIZE 5
+ 
+int buffer[SIZE];
+int in = 0, out = 0;
+ 
+sem_t empty, full, mutex;
+ 
+void* producer(void* arg) {
+    for(int i = 1; i <= 10; i++) {
+        sem_wait(&empty);   
+        sem_wait(&mutex);   
+        buffer[in] = i;
+        printf("Producer produced: %d\n", i);
+        in = (in + 1) % SIZE;
+ 
+        sem_post(&mutex);   
+        sem_post(&full);    
+    }
+    return NULL;
+}
+ 
+void* consumer(void* arg) {
+    for(int i = 1; i <= 10; i++) {
+        sem_wait(&full);    
+        sem_wait(&mutex);   
+ 
+        int item = buffer[out];
+        printf("Consumer consumed: %d\n", item);
+        out = (out + 1) % SIZE;
+ 
+        sem_post(&mutex);   
+        sem_post(&empty);   
+    }
+    return NULL;
+}
+ 
+int main() {
+    pthread_t prod, cons;
+ 
+    sem_init(&empty, 0, SIZE);
+    sem_init(&full, 0, 0);
+    sem_init(&mutex, 0, 1);
+ 
+    pthread_create(&prod, NULL, producer, NULL);
+    pthread_create(&cons, NULL, consumer, NULL);
+ 
+    pthread_join(prod, NULL);
+    pthread_join(cons, NULL);
+ 
+    sem_destroy(&empty);
+    sem_destroy(&full);
+    sem_destroy(&mutex);
+ 
+    return 0;
+}
+ 
+ 
+---------------------------------------------------------------------------------------------------------------------------------------
+// Memory Allocation Simulation using First Fit, Best Fit, and Worst Fit
+---------------------------------------------------------------------------------------------------------------------------------------
+#include <iostream>
+using namespace std;
+ 
+#define MAX 20   
+int blockSize[MAX];     
+int allocated[MAX];     
+ 
+void displayMemory(int n) {
+    cout << "\nCurrent Memory State:\n";
+    cout << "---------------------------------\n";
+    cout << "Block\tSize\tStatus\n";
+    cout << "---------------------------------\n";
+ 
+    for (int i = 0; i < n; i++) {
+        cout << i + 1 << "\t" << blockSize[i] << "\t" 
+             << (allocated[i] ? "Allocated" : "Free") << endl;
+    }
+    cout << "---------------------------------\n";
+}
+ 
+ 
+void firstFit(int n, int req) {
+    for (int i = 0; i < n; i++) {
+        if (!allocated[i] && blockSize[i] >= req) {
+            allocated[i] = 1;
+            cout << "Allocated using First Fit in Block " << i + 1 << endl;
+            return;
+        }
+    }
+    cout << "Allocation failed! No suitable block.\n";
+}
+ 
+ 
+void bestFit(int n, int req) {
+    int bestIndex = -1;
+    int bestSize = 1000000; 
+ 
+    for (int i = 0; i < n; i++) {
+        if (!allocated[i] && blockSize[i] >= req && blockSize[i] < bestSize) {
+            bestSize = blockSize[i];
+            bestIndex = i;
+        }
+    }
+ 
+    if (bestIndex != -1) {
+        allocated[bestIndex] = 1;
+        cout << "Allocated using Best Fit in Block " << bestIndex + 1 << endl;
+    } else {
+        cout << "Allocation failed! No suitable block.\n";
+    }
+}
+ 
+ 
+void worstFit(int n, int req) {
+    int worstIndex = -1;
+    int worstSize = -1; 
+ 
+    for (int i = 0; i < n; i++) {
+        if (!allocated[i] && blockSize[i] >= req && blockSize[i] > worstSize) {
+            worstSize = blockSize[i];
+            worstIndex = i;
+        }
+    }
+ 
+    if (worstIndex != -1) {
+        allocated[worstIndex] = 1;
+        cout << "Allocated using Worst Fit in Block " << worstIndex + 1 << endl;
+    } else {
+        cout << "Allocation failed! No suitable block.\n";
+    }
+}
+ 
+int main() {
+    int n;
+ 
+    cout << "Enter number of memory blocks (max 20): ";
+    cin >> n;
+ 
+ 
+    cout << "Enter size of each block:\n";
+    for (int i = 0; i < n; i++) {
+        cout << "Block " << i + 1 << ": ";
+        cin >> blockSize[i];
+        allocated[i] = 0; 
+    }
+ 
+    int choice, req;
+ 
+    while (true) {
+        cout << "\n===== Memory Allocation Menu =====\n";
+        cout << "1. First Fit\n";
+        cout << "2. Best Fit\n";
+        cout << "3. Worst Fit\n";
+        cout << "4. Display Memory\n";
+        cout << "5. Exit\n";
+        cout << "Choose an option: ";
+        cin >> choice;
+ 
+        if (choice == 5) {
+            cout << "Exiting...\n";
+            break;
+        }
+ 
+        if (choice == 4) {
+            displayMemory(n);
+            continue;
+        }
+ 
+        cout << "Enter memory required: ";
+        cin >> req;
+ 
+        switch (choice) {
+            case 1: firstFit(n, req); break;
+            case 2: bestFit(n, req); break;
+            case 3: worstFit(n, req); break;
+            default: cout << "Invalid choice!\n";
+        }
+ 
+        displayMemory(n);
+    }
+ 
+    return 0;
+}
+---------------------------------------------------------------------------------------------------------------------------------------
+// Simulation and Comparison of Page Replacement Algorithms
+// FIFO, LRU, and Optimal
+---------------------------------------------------------------------------------------------------------------------------------------
+#include <iostream>
+using namespace std;
+ 
+void FIFO(int ref[], int n, int frames) {
+    int f[10];
+    int next = 0, count = 0;
+    for(int i = 0; i < frames; i++) f[i] = -1;
+ 
+    cout << "\nFIFO Page Replacement Sequence:\n";
+    for(int i = 0; i < n; i++) {
+        bool hit = false;
+        for(int j = 0; j < frames; j++)
+            if(f[j] == ref[i]) { hit = true; break; }
+ 
+        if(!hit) {
+            f[next] = ref[i];
+            next = (next + 1) % frames;
+            count++;
+        }
+ 
+        cout << "After inserting " << ref[i] << ": ";
+        for(int j = 0; j < frames; j++)
+            cout << (f[j]==-1?"-":to_string(f[j])) << " ";
+        cout << endl;
+    }
+    cout << "Total FIFO Page Faults: " << count << endl;
+}
+ 
+void LRU(int ref[], int n, int frames) {
+    int f[10], time[10]={0}, count=0;
+    for(int i = 0; i < frames; i++) f[i] = -1;
+ 
+    cout << "\nLRU Page Replacement Sequence:\n";
+    for(int i = 0; i < n; i++) {
+        bool hit = false;
+        for(int j = 0; j < frames; j++)
+            if(f[j] == ref[i]) { hit = true; time[j] = i; break; }
+ 
+        if(!hit) {
+            int lru = 0;
+            for(int j = 1; j < frames; j++)
+                if(time[j] < time[lru]) lru = j;
+            f[lru] = ref[i];
+            time[lru] = i;
+            count++;
+        }
+ 
+        cout << "After inserting " << ref[i] << ": ";
+        for(int j = 0; j < frames; j++)
+            cout << (f[j]==-1?"-":to_string(f[j])) << " ";
+        cout << endl;
+    }
+    cout << "Total LRU Page Faults: " << count << endl;
+}
+ 
+void Optimal(int ref[], int n, int frames) {
+    int f[10], count=0;
+    for(int i = 0; i < frames; i++) f[i] = -1;
+ 
+    cout << "\nOptimal Page Replacement Sequence:\n";
+    for(int i = 0; i < n; i++) {
+        bool hit = false;
+        for(int j = 0; j < frames; j++)
+            if(f[j] == ref[i]) { hit = true; break; }
+ 
+        if(!hit) {
+            int replace = -1, farthest = -1;
+            for(int j = 0; j < frames; j++) {
+                int k;
+                for(k = i+1; k < n; k++) if(f[j] == ref[k]) break;
+                if(k > farthest) { farthest = k; replace = j; }
+            }
+            f[replace] = ref[i];
+            count++;
+        }
+ 
+        cout << "After inserting " << ref[i] << ": ";
+        for(int j = 0; j < frames; j++)
+            cout << (f[j]==-1?"-":to_string(f[j])) << " ";
+        cout << endl;
+    }
+    cout << "Total Optimal Page Faults: " << count << endl;
+}
+ 
+int main() {
+    int n, frames;
+    cout << "Enter number of page references: ";
+    cin >> n;
+    int ref[20];
+    cout << "Enter page reference sequence: ";
+    for(int i = 0; i < n; i++) cin >> ref[i];
+ 
+    cout << "Enter number of frames: ";
+    cin >> frames;
+ 
+    FIFO(ref, n, frames);
+    LRU(ref, n, frames);
+    Optimal(ref, n, frames);
+ 
+    return 0;
+}
+---------------------------------------------------------------------------------------------------------------------------------------
+//✅ 1. Program to implement fork() system call
+---------------------------------------------------------------------------------------------------------------------------------------
+#include <stdio.h>
+#include <unistd.h>
+ 
+int main() {
+    printf("Before fork()\n");
+ 
+    int pid = fork();   
+ 
+    if (pid == 0) {
+ 
+        printf("This is CHILD process. PID = %d\n", getpid());
+    } else if (pid > 0) {
+ 
+        printf("This is PARENT process. PID = %d, Child PID = %d\n", getpid(), pid);
+    } else {
+        printf("Fork failed!\n");
+    }
+ 
+    return 0;
+}
+---------------------------------------------------------------------------------------------------------------------------------------
+//✅ 2. Program to implement wait() and exit() system calls
+---------------------------------------------------------------------------------------------------------------------------------------
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/wait.h>
+ 
+int main() {
+    int pid = fork();
+ 
+    if (pid == 0) {
+        printf("Child: Executing and exiting...\n");
+        exit(10);  
+    } else {
+        int status;
+        wait(&status);  
+ 
+        printf("Parent: Child exited with status = %d\n", WEXITSTATUS(status));
+    }
+ 
+    return 0;
+}
+---------------------------------------------------------------------------------------------------------------------------------------
+✅ 3. Program to implement open(), read(), write(), close()
+---------------------------------------------------------------------------------------------------------------------------------------
+This program copies the contents of input.txt to output.txt.
+ 
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+ 
+int main() {
+    char buffer[100];
+ 
+ 
+    int fd1 = open("input.txt", O_RDONLY);
+    if (fd1 < 0) {
+        printf("Error opening input.txt\n");
+        return 1;
+    }
+ 
+ 
+    int fd2 = open("output.txt", O_CREAT | O_WRONLY, 0644);
+ 
+    int bytes = read(fd1, buffer, sizeof(buffer));   
+    write(fd2, buffer, bytes);                     
+ 
+    close(fd1);
+    close(fd2);
+ 
+    printf("Data copied from input.txt to output.txt successfully.\n");
+ 
+    return 0;
+}
+---------------------------------------------------------------------------------------------------------------------------------------
+✅ Q1. Program to create child using fork() and print PID & PPID
+---------------------------------------------------------------------------------------------------------------------------------------
+#include <stdio.h>
+#include <unistd.h>
+ 
+int main() {
+    int pid = fork();
+ 
+    if (pid < 0) {
+        printf("Fork failed!\n");
+        return 1;
+    }
+ 
+    if (pid == 0) {
+ 
+        printf("Child Process:\n");
+        printf("PID  = %d\n", getpid());
+        printf("PPID = %d\n", getppid());
+    } else {
+ 
+        printf("Parent Process:\n");
+        printf("PID  = %d\n", getpid());
+        printf("PPID = %d\n", getppid());
+    }
+ 
+    return 0;
+}
+---------------------------------------------------------------------------------------------------------------------------------------
+✅ Q2. Program to create ORPHAN process and ZOMBIE process
+(A) Orphan Process Demo
+---------------------------------------------------------------------------------------------------------------------------------------
+Child sleeps longer → parent exits first → child becomes orphan → adopted by init.
+ 
+#include <stdio.h>
+#include <unistd.h>
+ 
+int main() {
+    int pid = fork();
+ 
+    if (pid == 0) {
+ 
+        sleep(5);   
+        printf("Child (Orphan) Process:\n");
+        printf("PID = %d, New PPID = %d\n", getpid(), getppid());
+    } else {
+ 
+        printf("Parent exiting... PID = %d\n", getpid());
+    }
+ 
+    return 0;
+}
+---------------------------------------------------------------------------------------------------------------------------------------
+B) Zombie Process Demo
+---------------------------------------------------------------------------------------------------------------------------------------
+Child finishes immediately → parent delays calling wait() → child becomes zombie.
+ 
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/wait.h>
+ 
+int main() {
+    int pid = fork();
+ 
+    if (pid == 0) {
+ 
+        printf("Child exiting quickly to become zombie\n");
+    } else {
+ 
+        printf("Parent sleeping... child becomes zombie\n");
+        sleep(10);
+ 
+ 
+        wait(NULL);
+        printf("Parent waited. Zombie cleared.\n");
+    }
+ 
+    return 0;
+}
+---------------------------------------------------------------------------------------------------------------------------------------
+✅ Q3. Program to sum two small numbers (<50) using child process and return via exit status
+---------------------------------------------------------------------------------------------------------------------------------------
+✔ Parent sends no data
+✔ Child computes sum
+✔ Child returns sum using exit(sum)
+✔ Parent prints result
+ 
+Note: Exit status range is 0–255, so sum must be <255 (valid here).
+ 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+ 
+int main(int argc, char *argv[]) {
+ 
+    if (argc != 3) {
+        printf("Usage: %s num1 num2\n", argv[0]);
+        return 1;
+    }
+ 
+    int a = atoi(argv[1]);
+    int b = atoi(argv[2]);
+ 
+    int pid = fork();
+ 
+    if (pid == 0) {
+ 
+        int sum = a + b;
+        printf("Child: Sum = %d\n", sum);
+        exit(sum);    
+    } else {
+ 
+        int status;
+        wait(&status);
+        int result = WEXITSTATUS(status);
+        printf("Parent: Sum received from child = %d\n", result);
+    }
+ 
+    return 0;
+}
+
+    --------------------------------------------------------------------------------------------------------------------------------------
+
+Add Comment
+Please, Sign In to add comment
+Public Pastes
+
+    Signals
+    CSS | 3 min ago | 0.23 KB
+    Untitled
+    CSS | 3 min ago | 0.23 KB
+    Untitled
+    CSS | 6 min ago | 0.23 KB
+    VNC SCRIPT 2/2: autoinput.vbs
+    VBScript | 1 hour ago | 0.23 KB
+    VNC SCRIPT 1/2: vncauto.bat
+    Batch | 1 hour ago | 0.72 KB
+    Metroid Mission Rescue state condition list f...
+    ASM (NASM) | 1 hour ago | 1.49 KB
+    videoscheomedia
+    XML | 3 hours ago | 1.00 KB
+    Untitled
+    7 hours ago | 14.91 KB
+
+create new paste  /  syntax languages  /  archive  /  faq  /  tools  /  night mode  /  api  /  scraping api  /  news  /  pro
+privacy statement  /  cookies policy  /  terms of service /  security disclosure  /  dmca  /  report abuse  /  contact
+
+By using Pastebin.com you agree to our cookies policy to enhance your experience.
+Site design & logo © 2025 Pastebin
+Not a member of Pastebin yet?
+Sign Up, it unlocks many cool features!
+ 
